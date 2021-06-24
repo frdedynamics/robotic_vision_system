@@ -1,5 +1,8 @@
-function set_webcam_images(camDeviceNum, numImgs, folder)
+function set_webcam_images(numImgs, folder)
+    camDeviceNum = connect_webcam()
+    
     for i=1:numImgs
+        %Capture image
         img = get_webcam_img(camDeviceNum);
         userInput = input('Satisfied with the captured image? (1/0)');
 
@@ -23,6 +26,20 @@ function set_webcam_images(camDeviceNum, numImgs, folder)
             end
         end
     end
+end
+
+function [camDeviceNum] = connect_webcam()
+    %Define webcamlist
+    myWebcamlist = webcamlist;
+    %Display connected web cameras
+    camNum = length(myWebcamlist);
+    for cam = 1:camNum
+        disp(string(myWebcamlist(cam)))
+    end
+    
+    %Select camera by index of desired camera in list
+    camDeviceNum = input('Which camera index should be used?');
+    disp('Selected web camera: ' + string(myWebcamlist(camDeviceNum)))
 end
 
 function [img] = get_webcam_img(camDeviceNum)
