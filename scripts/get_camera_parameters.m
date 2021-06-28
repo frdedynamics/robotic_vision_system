@@ -16,22 +16,22 @@ function [cameraParams, worldPoints] = get_camera_parameters(folder)
     
     %% Figures
     %Evaluate calibration accuracy
-    figure(1); showReprojectionErrors(cameraParams);
-    title('Reprojection Errors');
-    
-    %Visualize camera extrinsics
-    figure(2);
-    showExtrinsics(cameraParams);
-    drawnow;
-
-    %Plot detected and reprojected points
-    figure(3); 
-    imshow(calib_imgs{1}); 
-    hold on;
-    plot(imgPoints(:,1,1), imgPoints(:,2,1),'go');
-    plot(cameraParams.ReprojectedPoints(:,1,1),cameraParams.ReprojectedPoints(:,2,1),'r+');
-    legend('Detected Points','Reprojected Points');
-    hold off;
+%     figure(1); showReprojectionErrors(cameraParams);
+%     title('Reprojection Errors');
+%     
+%     %Visualize camera extrinsics
+%     figure(2);
+%     showExtrinsics(cameraParams);
+%     drawnow;
+% 
+%     %Plot detected and reprojected points
+%     figure(3); 
+%     imshow(calib_imgs{1}); 
+%     hold on;
+%     plot(imgPoints(:,1,1), imgPoints(:,2,1),'go');
+%     plot(cameraParams.ReprojectedPoints(:,1,1),cameraParams.ReprojectedPoints(:,2,1),'r+');
+%     legend('Detected Points','Reprojected Points');
+%     hold off;
 end
 
 function imgArray = load_imgs(folder)
