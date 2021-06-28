@@ -40,6 +40,6 @@ function imgArray = load_imgs(folder)
     %Create cell array for holding calibration images
     imgArray = cell(1, numImgs);
     for i = 1:numImgs
-        imgArray{i} = fullfile(folder, sprintf('Image #%d.png', i));
+        imgArray{i} = fullfile(folder, sprintf('image%d.png', i));
     end
 end

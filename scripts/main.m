@@ -17,12 +17,11 @@ cameraParams = get_camera_parameters(folder);
 
 %Capture image with chekerboard and object
 capture_recognition_data = false;
-folder = '..\data\objectImgs';
+folder = ('..\data\objectImgs');
 if capture_recognition_data
     numImgs = 1;
     set_webcam_images(numImgs, folder);
 end
 
-%Load image with checkerboard and objects to recognice
-%Undistort image
-%Filter image such that objects are easily seen
+recogImgNum = 2;
+filter_recognition_image(folder, recogImgNum, cameraParams);
