@@ -56,9 +56,6 @@ function [img] = get_webcam_img(camDeviceNum)
 end
 
 function save_img(folder, img, imgNum)
-    %Convert image to grey scale
-    %INSERT
-    
     %Save image to path
     imgName = sprintf('Image #%d.png', imgNum);
     fullFileName = fullfile(folder, imgName);

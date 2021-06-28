@@ -1,5 +1,5 @@
 function [cameraParams] = get_camera_parameters(folder)
-    calib_imgs = load_calibration_imgs(folder);
+    calib_imgs = load_imgs(folder);
     
     %Detect checkerboard corners in images
     [imgPoints, boardSize] = detectCheckerboardPoints(calib_imgs);
@@ -34,12 +34,12 @@ function [cameraParams] = get_camera_parameters(folder)
     hold off;
 end
 
-function calib_imgs = load_calibration_imgs(folder)
+function imgArray = load_imgs(folder)
     %Number of images in directory
     numImgs = numel(dir(fullfile(folder, '*.png')));
     %Create cell array for holding calibration images
-    calib_imgs = cell(1, numImgs);
+    imgArray = cell(1, numImgs);
     for i = 1:numImgs
-        calib_imgs{i} = fullfile(folder, sprintf('Image #%d.png', i));
+        imgArray{i} = fullfile(folder, sprintf('Image #%d.png', i));
     end
 end
