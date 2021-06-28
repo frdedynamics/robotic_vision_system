@@ -57,7 +57,7 @@ end
 
 function save_img(folder, img, imgNum)
     %Save image to path
-    imgName = sprintf('Image #%d.png', imgNum);
+    imgName = sprintf('image%d.png', imgNum);
     fullFileName = fullfile(folder, imgName);
     imwrite(img, fullFileName);
 end

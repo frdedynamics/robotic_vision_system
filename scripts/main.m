@@ -8,22 +8,22 @@ capture_calibration_data = false;
 folder = ('..\data\calibrationImgs');
 if capture_calibration_data
     %An accurate calibration requires at least 10-20 images
-    numImgs = 20;
+    numImgs = 30;
     set_webcam_images(numImgs, folder);
 end
 
 %% Compute camera intrincis and extrinsics
-[cameraParams, worldPoints] = get_camera_parameters(folder);
+%[cameraParams, worldPoints] = get_camera_parameters(folder);
 
 %Capture image with chekerboard and object
 capture_recognition_data = false;
 folder = ('..\data\objectImgs');
 if capture_recognition_data
-    numImgs = 1;
+    numImgs = 10;
     set_webcam_images(numImgs, folder);
 end
 
-recogImgNum = 5;
+recogImgNum = 3;
 [imgUndistorted, origin] = filter_recognition_image(folder, recogImgNum, cameraParams);
 
 %Compute extrinsics
