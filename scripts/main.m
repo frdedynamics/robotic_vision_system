@@ -13,7 +13,7 @@ if capture_calibration_data
 end
 
 %% Compute camera intrincis and extrinsics
-cameraParams = get_camera_parameters(folder);
+[cameraParams, worldPoints] = get_camera_parameters(folder);
 
 %Capture image with chekerboard and object
 capture_recognition_data = false;
@@ -23,5 +23,8 @@ if capture_recognition_data
     set_webcam_images(numImgs, folder);
 end
 
-recogImgNum = 2;
-filter_recognition_image(folder, recogImgNum, cameraParams);
+recogImgNum = 5;
+[imgUndistorted, origin] = filter_recognition_image(folder, recogImgNum, cameraParams);
+
+%Compute extrinsics
+[R, t] = get_extrinsics(cameraParams, imgUndistorted, origin, worldPoints);

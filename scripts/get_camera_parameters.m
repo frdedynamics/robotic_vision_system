@@ -1,4 +1,4 @@
-function [cameraParams] = get_camera_parameters(folder)
+function [cameraParams, worldPoints] = get_camera_parameters(folder)
     calib_imgs = load_imgs(folder);
     
     %Detect checkerboard corners in images
