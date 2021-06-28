@@ -1,9 +1,15 @@
 function [cameraParams, worldPoints] = get_camera_parameters(folder)
+    global BOARD_SIZE
+    
     calib_imgs = load_imgs(folder);
     
     %Detect checkerboard corners in images
     [imgPoints, boardSize] = detectCheckerboardPoints(calib_imgs);
-
+    
+    if ~isequal(boardSize, BOARD_SIZE)
+        error("Board size seems weird. Detected: %dx%d, expected: %dx%d.", ...
+            boardSize(1), boardSize(2), BOARD_SIZE(1), BOARD_SIZE(2))
+    end
     %Generate the world coordinates of the checkerboard corners in the
     %pattern-centric coordinate system, with the upper-left corner at (0,0)
     squareSize = 35; %[mm]

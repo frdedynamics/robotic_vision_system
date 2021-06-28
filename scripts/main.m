@@ -1,4 +1,8 @@
 %clear;
+clear all; clc;
+%% Shamefully using globals for quick test
+global BOARD_SIZE
+BOARD_SIZE = [5,8];
 
 %% Capture and save images of calibration(checkerboard) pattern with a web camera
 %Use non-square checkerboard to obtain orientation and origin of pattern
