@@ -1,7 +1,13 @@
-clear;
+clear all; clc
 
 %% Add paths
 addpath('../functions')
+
+%% Checkerboard specifications
+global BOARD_SIZE
+global SQUARE_SIZE
+BOARD_SIZE = [5,8];
+SQUARE_SIZE = 35; %[mm]
 
 %% Capture and save images of calibration(checkerboard) pattern with a web camera
 %Use non-square checkerboard to obtain orientation and origin of pattern
