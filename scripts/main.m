@@ -1,4 +1,7 @@
-%clear;
+clear;
+
+%% Add paths
+addpath('../functions')
 
 %% Capture and save images of calibration(checkerboard) pattern with a web camera
 %Use non-square checkerboard to obtain orientation and origin of pattern
