@@ -4,10 +4,8 @@ clear all; clc
 addpath('../functions')
 
 %% Checkerboard specifications
-global BOARD_SIZE
-global SQUARE_SIZE
-BOARD_SIZE = [5,8];
-SQUARE_SIZE = 35; %[mm]
+checkerboardSize = [5,8];
+squareSize = 35; %[mm]
 
 %% Capture and save images of calibration(checkerboard) pattern with a web camera
 %Use non-square checkerboard to obtain orientation and origin of pattern
@@ -22,7 +20,7 @@ if capture_calibration_data
 end
 
 %% Compute camera intrincis and extrinsics
-[cameraParams, worldPoints] = get_camera_parameters(folder);
+[cameraParams, worldPoints] = get_camera_parameters(folder, checkerboardSize, squareSize);
 
 %Capture image with chekerboard and object
 capture_recognition_data = false;
@@ -34,6 +32,8 @@ end
 
 recogImgNum = 8;
 [imgSegmented, imgUndistorted, origin] = filter_recognition_image(folder, recogImgNum, cameraParams);
+
+detect_objects(imgSegmented, imgUndistorted);
 
 %Compute extrinsics
 [R, t] = get_extrinsics(cameraParams, imgUndistorted, origin, worldPoints);
