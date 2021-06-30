@@ -28,12 +28,12 @@ end
 capture_recognition_data = false;
 folder = ('..\data\objectImgs');
 if capture_recognition_data
-    numImgs = 10;
+    numImgs = 5;
     set_webcam_images(numImgs, folder);
 end
 
-recogImgNum = 9;
-[imgUndistorted, origin] = filter_recognition_image(folder, recogImgNum, cameraParams);
+recogImgNum = 8;
+[imgSegmented, imgUndistorted, origin] = filter_recognition_image(folder, recogImgNum, cameraParams);
 
 %Compute extrinsics
 [R, t] = get_extrinsics(cameraParams, imgUndistorted, origin, worldPoints);
