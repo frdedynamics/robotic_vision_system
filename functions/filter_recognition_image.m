@@ -3,7 +3,7 @@ function [imgSegmented, imgUndistorted, newOrigin] = filter_recognition_image(fo
     imgPath = fullfile(folder, sprintf('image%d.png', recogImg));
     img = im2double(imread(imgPath));
     %Correct image for lens distortion
-    [imgUndistorted, newOrigin] = undistortImage(img, params);
+    [imgUndistorted, newOrigin] = undistortImage(img, params, 'OutputView', 'full');
     
     %Segment image such that objects are easily seen
     I = rgb2gray(imgUndistorted);
@@ -19,5 +19,5 @@ function [imgSegmented, imgUndistorted, newOrigin] = filter_recognition_image(fo
     
     seDiamond = strel('diamond',2);
     imgSegmented = imerode(I, seDiamond);
-    figure(9), imshow(imgSegmented), title('Filtered image');
+    %figure(9), imshow(imgSegmented), title('Filtered image');
 end

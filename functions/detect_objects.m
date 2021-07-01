@@ -1,4 +1,4 @@
-function detect_objects(imgSegmented, imgUndistorted)
+function [centroid, boxes] = detect_objects(imgSegmented, imgUndistorted)
     %Use segmented image to find connected regions
     %Set Blob Analysis object properties
     blobAnalysis = vision.BlobAnalysis('AreaOutputPort', true,...
