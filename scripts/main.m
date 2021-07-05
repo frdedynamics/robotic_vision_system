@@ -40,4 +40,10 @@ recogImgNum = 8;
 
 [objLocation, objWidth] = get_obj_measurements(cameraParams, R, t, origin, centroids, boundingBoxes);
 
+z = zeros(1,3);
+H_cam_obj = [R t.'; z 1];
+H_base_ee = get_homogeneous_transform_robot();
 
+%H_base_obj = H_base_ee * H_ee_cam * H_cam_obj;
+
+   
