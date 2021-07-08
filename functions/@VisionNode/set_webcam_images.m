@@ -1,4 +1,4 @@
-function set_webcam_images(numImgs, folder)
+function set_webcam_images(node, numImgs, folder)
     camDeviceNum = connect_webcam()
     
     for i=1:numImgs

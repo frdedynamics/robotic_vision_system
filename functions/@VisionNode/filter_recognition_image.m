@@ -1,4 +1,4 @@
-function [imgSegmented, imgUndistorted, newOrigin] = filter_recognition_image(folder, recogImg, params)
+function [imgSegmented, imgUndistorted, newOrigin] = filter_recognition_image(node, folder, recogImg, params)
     %Load image
     imgPath = fullfile(folder, sprintf('image%d.png', recogImg));
     img = im2double(imread(imgPath));

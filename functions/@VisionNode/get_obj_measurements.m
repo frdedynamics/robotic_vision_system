@@ -1,4 +1,4 @@
-function [objLocation, objWidth] = get_obj_measurements(params, R, t, origin, centroids, boundingBoxes)
+function [objLocation, objWidth] = get_obj_measurements(node, params, R, t, origin, centroids, boundingBoxes)
     [numObj, ~] = size(boundingBoxes);
     objWidth = zeros(numObj, 1);
     objLocation = zeros(numObj, 2);
