@@ -11,8 +11,13 @@ classdef VisionNode < dynamicprops
             'calibration', ('..\data\calibrationImgs'), ...
             'recognition', ('..\data\objectImgs')...
             );
-        %FolderCalibData = ('..\data\calibrationImgs');
-        %FolderRecogData = ('..\data\objectImgs');
+        
+        % Message types: Robot tasks
+        MsgType = struct(...
+            'openGrip', ('(3)'), ...
+            'closeGrip', ('(4)'), ...
+            'moveTcp', ('(6)') ...
+            );
     end
     
     properties
@@ -21,14 +26,16 @@ classdef VisionNode < dynamicprops
         numRecogImg = 1;
         
         % Object measurements
-        ObjectCenter = [];
+        ObjectCenter = []; %[X,Y,Z] - Z fixed
         ObjectWidth = [];
         
         % Message content
-        CmdTcpPosition = [0, 0, 0, 0, 0, 0];
+        CmdTcpPosition = [0, 0, 0, 0, 0, 0]; %[X, Y, Z, Rx, Ry, Rz]
+        %Z fixed (For Z to be constant, the axis of the camera must be perpendicular to a flat surface being photographed), orientation unknown
+        %Get orientation from RBT 
         
         % Network
-        RobotIp = '172.31.1.138';
+        RobotIp = '172.31.1.101';
         Socket %initialize?
     end
     
@@ -38,7 +45,7 @@ classdef VisionNode < dynamicprops
             node.ObjectCenter = objCenter;
             node.ObjectWidth = objWidth;
             node.CmdTcpPosition = newTcpPosition;
-            %other things?
+            % Necessary content?
         end
         
         %set_webcam_images(node, numImgs, folder)
@@ -54,6 +61,95 @@ classdef VisionNode < dynamicprops
         [objLocation, objWidth] = get_obj_measurements(node, cameraParams, R, t, origin, centroids, boundingBoxes)
         
         [H_base_obj] = get_mapping_robot_object(node, R, t)
+        
+        %% Network specific methods
+        % must be able to perform these tasks:
+        % 1. Init Socket and establish connection
+        % 2. Receive messages from robot
+        % 3. Send messages to robot - TODO: generalize sending by introducing message types
+        % 4. Close Socket
+        
+        function initSocket(node)
+            % Connect to robot
+            Socket_conn = tcpclient(node.RobotIp, 30096); %with callback or terminator?
+            fclose(Socket_conn);
+            disp('Press Play on Robot...')
+            fopen(Socket_conn);
+            disp('Connected!');
+            node.Socket = Socket_conn;
+        end
+        
+        function closeSocket(node)
+            clear node.Socket
+        end
+        
+        function setCmdTcpPosition(node, newCmdTcpPosition) 
+            %newCmdTcpPosition's first 3 elements comes from object location(obj center in
+            %world coord.)
+            if length(newCmdTcpPosition) == 6 % needs more/better check
+                node.CmdTcpPosition = newCmdTcpPosition;
+            else
+                ERROR("TCP position expected as array of 6. X, Y, Z, Rx, Ry, Rz")
+            end
+        end
+        function [currentCmdTcpPosition] = getCmdTcpPosition(node)
+            currentCmdTcpPosition = node.CmdTcpPosition;
+        end
+        
+        function moveToTcpPosition(node)
+            tcpChar = ['(',num2str(node.CmdTcpPosition(1)),',',... 
+                num2str(node.CmdTcpPosition(2)),',',...
+                num2str(node.CmdTcpPosition(3)),',',...
+                num2str(node.CmdTcpPosition(4)),',',...
+                num2str(node.CmdTcpPosition(5)),',',...
+                num2str(node.CmdTcpPosition(6)),...
+                ')'];
+            fprintf(node.Socket, node.MsgType.moveTcp);
+            pause(0.01);% Tune this to meet your system
+            fprintf(node.Socket, tcpChar);
+            while node.Socket.BytesAvailable==0 % wait for response
+                %obj.Socket.BytesAvailable
+            end
+            success = fscanf(node.Socket,'%c',node.Socket.BytesAvailable);
+            if ~success
+                ERROR("Failed to send TCP command.")
+            else
+                disp("TCP command sent.")
+            end
+        end
+        
+        function openGripper(node)
+            % Open the gripper
+            % Long Qian 2016
+            if node.Socket.BytesAvailable>0
+                fscanf(node.Socket,'%c',node.Socket.BytesAvailable);
+            end
+            fprintf(node.Socket, node.MsgType.openGrip);
+            while node.Socket.BytesAvailable==0
+                %t.BytesAvailable
+            end
+            success = fscanf(node.Socket,'%c',node.Socket.BytesAvailable);
+            if ~strcmp(success,'1')
+                error('error sending open gripper command')
+            end
+        end
+        
+        function closeGripper(node)
+            % Close the gripper
+            % Long Qian 2016
+            if node.Socket.BytesAvailable>0
+                fscanf(node.Socket, '%c', node.Socket.BytesAvailable);
+            end
+            fprintf(node.Socket, node.MsgType.closeGrip);
+            while node.Socket.BytesAvailable==0
+                %node.Socket.BytesAvailable
+            end
+            success = fscanf(node.Socket,'%c',node.Socket.BytesAvailable);
+            if ~strcmp(success,'1')
+                error('error sending close gripper command')
+            end
+        end
+
     end
     
     %methods (Static)
