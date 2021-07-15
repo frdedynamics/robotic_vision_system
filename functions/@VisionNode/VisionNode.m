@@ -30,7 +30,7 @@ classdef VisionNode < dynamicprops
         ObjectWidth = [];
         
         % Message content
-        CmdTcpPosition = [0, 0, 0, 0, 0, 0]; %[X, Y, Z, Rx, Ry, Rz]
+        CmdTcpPosition = [0.065,-0.520, 0.4, 1.863, -0.083, -0.1]; %[X, Y, Z, Rx, Ry, Rz]
         %Z fixed (For Z to be constant, the axis of the camera must be perpendicular to a flat surface being photographed), orientation unknown
         %Get orientation from RBT 
         
@@ -41,10 +41,13 @@ classdef VisionNode < dynamicprops
     
     methods
         %constructor of class VisionNode
-        function node = VisionNode(objCenter, objWidth, newTcpPosition)
-            node.ObjectCenter = objCenter;
-            node.ObjectWidth = objWidth;
-            node.CmdTcpPosition = newTcpPosition;
+        function node = VisionNode(currentTcpPosition)
+            % Initialize with current tcp position of robot
+            if length(currentTcpPosition) == 6 % needs more/better check
+                node.CmdTcpPosition = currentTcpPosition;
+            else
+                ERROR("TCP position expected as array of 6 with the format [X, Y, Z, Rx, Ry, Rz]")
+            end
             % Necessary content?
         end
         
@@ -71,7 +74,8 @@ classdef VisionNode < dynamicprops
         
         function initSocket(node)
             % Connect to robot
-            Socket_conn = tcpclient(node.RobotIp, 30096); %with callback or terminator?
+            %Socket_conn = tcpclient(node.RobotIp, 30000); %with callback or terminator?
+            Socket_conn = tcpip(node.RobotIp, 30000,'NetworkRole','server');
             fclose(Socket_conn);
             disp('Press Play on Robot...')
             fopen(Socket_conn);
@@ -89,7 +93,7 @@ classdef VisionNode < dynamicprops
             if length(newCmdTcpPosition) == 6 % needs more/better check
                 node.CmdTcpPosition = newCmdTcpPosition;
             else
-                ERROR("TCP position expected as array of 6. X, Y, Z, Rx, Ry, Rz")
+                ERROR("TCP position expected as array of 6 with the format [X, Y, Z, Rx, Ry, Rz]")
             end
         end
         function [currentCmdTcpPosition] = getCmdTcpPosition(node)
@@ -104,11 +108,12 @@ classdef VisionNode < dynamicprops
                 num2str(node.CmdTcpPosition(5)),',',...
                 num2str(node.CmdTcpPosition(6)),...
                 ')'];
+            
             fprintf(node.Socket, node.MsgType.moveTcp);
             pause(0.01);% Tune this to meet your system
             fprintf(node.Socket, tcpChar);
             while node.Socket.BytesAvailable==0 % wait for response
-                %obj.Socket.BytesAvailable
+                %node.Socket.BytesAvailable
             end
             success = fscanf(node.Socket,'%c',node.Socket.BytesAvailable);
             if ~success
@@ -126,7 +131,7 @@ classdef VisionNode < dynamicprops
             end
             fprintf(node.Socket, node.MsgType.openGrip);
             while node.Socket.BytesAvailable==0
-                %t.BytesAvailable
+                %node.Socket.BytesAvailable
             end
             success = fscanf(node.Socket,'%c',node.Socket.BytesAvailable);
             if ~strcmp(success,'1')
