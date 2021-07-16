@@ -26,7 +26,7 @@ classdef VisionNode < dynamicprops
         numRecogImg = 1;
         
         % Object measurements
-        ObjectCenter = []; %[X,Y,Z] - Z fixed
+        ObjectPosition = []; %[X,Y,Z] - Z fixed
         ObjectWidth = [];
         
         % Message content
@@ -61,8 +61,8 @@ classdef VisionNode < dynamicprops
         
         [R, t] = get_extrinsics(node, cameraParams, imgUndistorted, origin, worldPoints)
         
-        [objLocation, objWidth] = get_obj_measurements(node, cameraParams, R, t, origin, centroids, boundingBoxes)
-        
+        [objPosition, objWidth] = get_obj_measurements(node, cameraParams, R, t, origin, centroids, boundingBoxes)
+       
         [H_base_obj] = get_mapping_robot_object(node, R, t)
         
         %% Network specific methods
@@ -74,7 +74,6 @@ classdef VisionNode < dynamicprops
         
         function initSocket(node)
             % Connect to robot
-            %Socket_conn = tcpclient(node.RobotIp, 30000); %with callback or terminator?
             Socket_conn = tcpip(node.RobotIp, 30000,'NetworkRole','server');
             fclose(Socket_conn);
             disp('Press Play on Robot...')
@@ -88,8 +87,6 @@ classdef VisionNode < dynamicprops
         end
         
         function setCmdTcpPosition(node, newCmdTcpPosition) 
-            %newCmdTcpPosition's first 3 elements comes from object location(obj center in
-            %world coord.)
             if length(newCmdTcpPosition) == 6 % needs more/better check
                 node.CmdTcpPosition = newCmdTcpPosition;
             else
