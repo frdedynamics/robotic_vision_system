@@ -1,5 +1,4 @@
 function [objBasePositions] = get_obj_position(node, cameraParams, R, t, Z, origin, centroids, boundingBoxes)
-    %produces two 
     [objPositions, ~] = get_obj_measurements(cameraParams, R, t, origin, centroids, boundingBoxes);
     H_base_obj = get_mapping_robot_object(R, t);
     
@@ -38,6 +37,10 @@ function [H_base_cam] = get_homogeneous_transform_robot()
     cameraMount = rigidBody('webcam');
     setFixedTransform(cameraMount.Joint, [0.087 0 -0.132 pi/2], 'dh');
     addBody(robot, cameraMount, 'tcp');
+    
+    object = rigidBody('obj');
+    setFixedTransform(object.Joint, [0.087 0 -0.132 0], 'dh');
+    addBody(robot, object, 'base_link');
 
     %config = randomConfiguration(robot); %Replace by robot config when taking snapshot
     config = [0.065,-0.520, 0.4, 1.863, -0.083, -0.1];
