@@ -1,7 +1,7 @@
-function [objLocation, objWidth] = get_obj_measurements(node, params, R, t, origin, centroids, boundingBoxes)
+function [objPositions, objWidth] = get_obj_measurements(node, params, R, t, origin, centroids, boundingBoxes)
     [numObj, ~] = size(boundingBoxes);
     objWidth = zeros(numObj, 1);
-    objLocation = zeros(numObj, 2);
+    objPositions = zeros(numObj, 2);
     for i=1:numObj
         %Fetch coordinates of box i: use top-left and top-right corner to
         %compute object width
@@ -17,6 +17,6 @@ function [objLocation, objWidth] = get_obj_measurements(node, params, R, t, orig
         objWidth(i) = abs(worldBoxPoints(2,1) - worldBoxPoints(1,1)); %[mm]
 
         %Map center points to world coordinates
-        objLocation(i,:) = pointsToWorld(params, R, t, centroids(i,:));
+        objPositions(i,:) = pointsToWorld(params, R, t, centroids(i,:));
     end
 end

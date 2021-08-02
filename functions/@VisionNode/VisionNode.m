@@ -26,13 +26,17 @@ classdef VisionNode < dynamicprops
         numRecogImg = 1;
         
         % Object measurements
-        ObjectPosition = []; %[X,Y,Z] - Z fixed
-        ObjectWidth = [];
+        ObjectPositions = []; %[X1,Y1; X2, Y2; ...; XnumObjs,YnumObjs]
+        ObjectWidths = [];
+        
+        %Object position relative to robot base
+        ObjBasePostions = []; %[X1, Y1, Z1; ...; XnumObjs, YnumObj, ZnumObj]
         
         % Message content
-        CmdTcpPosition = [0.065,-0.520, 0.4, 1.863, -0.083, -0.1]; %[X, Y, Z, Rx, Ry, Rz]
+        %Z = 0.4; 
+        CmdTcpPosition = [0.065,-0.520, 0.4, 1.863, -0.083, -0.1]; %[X, Y, Z(FIXED), Rx, Ry, Rz]
         %Z fixed (For Z to be constant, the axis of the camera must be perpendicular to a flat surface being photographed), orientation unknown
-        %Get orientation from RBT 
+        %Get orientation from RBT
         
         % Network
         RobotIp = '172.31.1.101';
@@ -48,7 +52,6 @@ classdef VisionNode < dynamicprops
             else
                 ERROR("TCP position expected as array of 6 with the format [X, Y, Z, Rx, Ry, Rz]")
             end
-            % Necessary content?
         end
         
         %set_webcam_images(node, numImgs, folder)
@@ -60,10 +63,8 @@ classdef VisionNode < dynamicprops
         [centroids, boundingBoxes] = detect_objects(node, imgSegmented, imgUndistorted)
         
         [R, t] = get_extrinsics(node, cameraParams, imgUndistorted, origin, worldPoints)
-        
-        [objPosition, objWidth] = get_obj_measurements(node, cameraParams, R, t, origin, centroids, boundingBoxes)
-       
-        [H_base_obj] = get_mapping_robot_object(node, R, t)
+     
+        [objBasePositions] = get_obj_position(node, cameraParams, R, t, Z, origin, centroids, boundingBoxes)
         
         %% Network specific methods
         % must be able to perform these tasks:
@@ -86,9 +87,9 @@ classdef VisionNode < dynamicprops
             clear node.Socket
         end
         
-        function setCmdTcpPosition(node, newCmdTcpPosition) 
-            if length(newCmdTcpPosition) == 6 % needs more/better check
-                node.CmdTcpPosition = newCmdTcpPosition;
+        function setCmdTcpPosition(node, objBasePosition) 
+            if size(objBasePosition, 1) == 1 % needs more/better check
+                node.CmdTcpPosition(1:3) = objBasePosition;
             else
                 ERROR("TCP position expected as array of 6 with the format [X, Y, Z, Rx, Ry, Rz]")
             end
