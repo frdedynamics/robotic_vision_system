@@ -1,10 +1,10 @@
-function [objBasePositions] = get_obj_position(node, cameraParams, R, t, Z, origin, centroids, boundingBoxes)
+function [objBasePositions] = get_obj_position(node, cameraParams, R, t, origin, centroids, boundingBoxes)
     [objPositions, ~] = get_obj_measurements(cameraParams, R, t, origin, centroids, boundingBoxes);
     H_base_obj = get_mapping_robot_object(R, t);
     
     objBasePositions = zeros(size(objPositions, 1), 3);
     for i=1:size(objPositions,1)
-        XYZ1 = [objPositions(i,:).'; Z; 1];
+        XYZ1 = [objPositions(i,:).'; 0; 1] * 0.001; %[mm]->[m]
         XYZ1Base = H_base_obj * XYZ1;
         objBasePositions(i, :)  = XYZ1Base(1:3);
     end
@@ -20,31 +20,35 @@ end
 
 function [H_base_cam] = get_homogeneous_transform_robot()
     % Get Rigid body tree
-    [robot, robotData] = loadrobot('universalUR5',...
-        'DataFormat', 'row',...
-        'Gravity', [0, 0, -9.80665]);
+    addpath('../data/ur5e')
+    %addpath('C:\Users\Brukar\Documents\HVLRoboticsLab\robotic_vision_system\data\ur5e')
+
+    robot = importrobot('ur5e_joint_limited_robot.urdf');
+    robot.DataFormat = 'column';
+    robot.Gravity = [0, 0, -9.80665];
 
     % Camera mounted on robot
     % Configure robot set-up with camera mounting in addition to end-effector
     zividOnArmExtender = rigidBody('extender');
-    setFixedTransform(zividOnArmExtender.Joint, [0 0 0.071 0], 'dh'); %[a alpha d theta]
+    setFixedTransform(zividOnArmExtender.Joint, [0 0 0.071 pi], 'dh'); %[a alpha d theta]
     addBody(robot, zividOnArmExtender, 'tool0');
 
     tcp = rigidBody('tcp');
     setFixedTransform(tcp.Joint, [0 0 0.147 0], 'dh');
     addBody(robot, tcp, 'extender');
 
-    cameraMount = rigidBody('webcam');
-    setFixedTransform(cameraMount.Joint, [0.087 0 -0.132 pi/2], 'dh');
+    cameraMount = rigidBody('cam_mount');
+    setFixedTransform(cameraMount.Joint, [-0.087 0 -0.132 pi/2], 'dh');
     addBody(robot, cameraMount, 'tcp');
     
-    object = rigidBody('obj');
-    setFixedTransform(object.Joint, [0.087 0 -0.132 0], 'dh');
-    addBody(robot, object, 'base_link');
-
+     cam = rigidBody('webcam');
+     setFixedTransform(cam.Joint, [0 0 0 -pi/2], 'dh');
+     addBody(robot, cam, 'cam_mount');
+   
     %config = randomConfiguration(robot); %Replace by robot config when taking snapshot
-    config = [0.065,-0.520, 0.4, 1.863, -0.083, -0.1];
-    H_base_ee = getTransform(robot, config, 'base_link', 'tcp');
+    config = [pi/2, -pi/2, pi/2, (3/2)*pi, -pi/2, -pi]'; 
+    %show(robot,config);
+    H_base_ee = getTransform(robot, config, 'base', 'tcp');
     H_ee_cam = getTransform(robot, config, 'tcp', 'webcam');
 
     H_base_cam =  H_base_ee * H_ee_cam;

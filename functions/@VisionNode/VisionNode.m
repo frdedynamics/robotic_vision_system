@@ -34,12 +34,14 @@ classdef VisionNode < dynamicprops
         
         % Message content
         %Z = 0.4; 
-        CmdTcpPosition = [0.065,-0.520, 0.4, 1.863, -0.083, -0.1]; %[X, Y, Z(FIXED), Rx, Ry, Rz]
+        %CmdTcpPosition = [0.065,-0.520, 0.4, 1.863, -0.083, -0.1]; %[X, Y, Z(FIXED), Rx, Ry, Rz]
+        %CmdTcpPosition = [-0.154, -0.367, 0.4, 2.199, -2.216, 0.022];
+        CmdTcpPosition = [0.20, -0.60, 0.40, 3.00, 0.02, 0.10];
         %Z fixed (For Z to be constant, the axis of the camera must be perpendicular to a flat surface being photographed), orientation unknown
         %Get orientation from RBT
         
         % Network
-        RobotIp = '172.31.1.101';
+        RobotIp = '172.31.1.252';
         Socket %initialize?
     end
     
@@ -64,7 +66,7 @@ classdef VisionNode < dynamicprops
         
         [R, t] = get_extrinsics(node, cameraParams, imgUndistorted, origin, worldPoints)
      
-        [objBasePositions] = get_obj_position(node, cameraParams, R, t, Z, origin, centroids, boundingBoxes)
+        [objBasePositions] = get_obj_position(node, cameraParams, R, t, origin, centroids, boundingBoxes)
         
         %% Network specific methods
         % must be able to perform these tasks:
@@ -87,13 +89,22 @@ classdef VisionNode < dynamicprops
             clear node.Socket
         end
         
-        function setCmdTcpPosition(node, objBasePosition) 
-            if size(objBasePosition, 1) == 1 % needs more/better check
-                node.CmdTcpPosition(1:3) = objBasePosition;
+        function setCmdTcpPosition(node, currentCmdPosition) 
+            if size(currentCmdPosition, 2) == 6 % needs more/better check
+                node.CmdTcpPosition = currentCmdPosition;
             else
                 ERROR("TCP position expected as array of 6 with the format [X, Y, Z, Rx, Ry, Rz]")
             end
         end
+        
+        function setCmdTcpObjPosition(node, objBasePosition) 
+            if size(objBasePosition, 1) == 1 % needs more/better check
+                node.CmdTcpPosition(1:2) = objBasePosition(1:2);
+            else
+                ERROR("TCP position expected as array of 6 with the format [X, Y, Z, Rx, Ry, Rz]")
+            end
+        end
+        
         function [currentCmdTcpPosition] = getCmdTcpPosition(node)
             currentCmdTcpPosition = node.CmdTcpPosition;
         end
