@@ -9,7 +9,7 @@ classdef VisionNode < dynamicprops
         % Memory location
         Folder = struct(...
             'calibration', ('..\data\calibrationImgs'), ...
-            'recognition', ('..\data\objectImgs')...
+            'recognition', ('..\data\recognitionImgs')...
             );
         
         % Message types: Robot tasks
@@ -22,8 +22,10 @@ classdef VisionNode < dynamicprops
     
     properties
         % Image capture
-        numCalibImg = 30; %An accurate calibration requires at least 10-20 images
-        numRecogImg = 1;
+        numImgCapture = struct(...
+        'calibration', 30,... %An accurate calibration requires at least 10-20 images
+        'recognition', 1 ...
+        );
         
         % Object measurements
         ObjectPositions = []; %[X1,Y1; X2, Y2; ...; XnumObjs,YnumObjs]
@@ -33,10 +35,9 @@ classdef VisionNode < dynamicprops
         ObjBasePostions = []; %[X1, Y1, Z1; ...; XnumObjs, YnumObj, ZnumObj]
         
         % Message content
-        %Z = 0.4; 
-        %CmdTcpPosition = [0.065,-0.520, 0.4, 1.863, -0.083, -0.1]; %[X, Y, Z(FIXED), Rx, Ry, Rz]
-        %CmdTcpPosition = [-0.154, -0.367, 0.4, 2.199, -2.216, 0.022];
-        CmdTcpPosition = [0.20, -0.60, 0.40, 3.00, 0.02, 0.10];
+        %CmdTcpPosition = [0.1333, -0.4394, 0.684, 3.142, 0, 0]; %[X, Y, Z(FIXED), Rx, Ry, Rz] - tcp pose of given init joint values
+        CmdTcpPosition = [0.130, -0.440, 0.530, 3.141, -0.002, -0.012];
+        CmdJointPosition = [pi/2, -pi/2, pi/3, (5/3)*pi, -pi/2, -pi];
         %Z fixed (For Z to be constant, the axis of the camera must be perpendicular to a flat surface being photographed), orientation unknown
         %Get orientation from RBT
         
@@ -56,7 +57,7 @@ classdef VisionNode < dynamicprops
             end
         end
         
-        %set_webcam_images(node, numImgs, folder)
+        set_webcam_images(node, numImgs, folder)
         
         [cameraParams, worldPoints] = get_camera_parameters(node, folderCalibData, checkerboardSize, squareSize)
         
@@ -131,7 +132,7 @@ classdef VisionNode < dynamicprops
                 disp("TCP command sent.")
             end
         end
-        
+
         function openGripper(node)
             % Open the gripper
             % Long Qian 2016

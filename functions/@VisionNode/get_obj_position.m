@@ -4,9 +4,9 @@ function [objBasePositions] = get_obj_position(node, cameraParams, R, t, origin,
     
     objBasePositions = zeros(size(objPositions, 1), 3);
     for i=1:size(objPositions,1)
-        XYZ1 = [objPositions(i,:).'; 0; 1] * 0.001; %[mm]->[m]
-        XYZ1Base = H_base_obj * XYZ1;
-        objBasePositions(i, :)  = XYZ1Base(1:3);
+        XY01_obj = [objPositions(i,:).'; 0; 1] * 0.001; %[mm]->[m]
+        XY01_base = H_base_obj * XY01_obj;
+        objBasePositions(i, :)  = XY01_base(1:3);
     end
 end
 
@@ -20,17 +20,14 @@ end
 
 function [H_base_cam] = get_homogeneous_transform_robot()
     % Get Rigid body tree
-    addpath('../data/ur5e')
-    %addpath('C:\Users\Brukar\Documents\HVLRoboticsLab\robotic_vision_system\data\ur5e')
-
-    robot = importrobot('ur5e_joint_limited_robot.urdf');
+    robot = importrobot('../data/ur5e/ur5e_joint_limited_robot.urdf');
     robot.DataFormat = 'column';
     robot.Gravity = [0, 0, -9.80665];
 
     % Camera mounted on robot
     % Configure robot set-up with camera mounting in addition to end-effector
     zividOnArmExtender = rigidBody('extender');
-    setFixedTransform(zividOnArmExtender.Joint, [0 0 0.071 pi], 'dh'); %[a alpha d theta]
+    setFixedTransform(zividOnArmExtender.Joint, [0 0 0.071 0], 'dh'); %[a alpha d theta]
     addBody(robot, zividOnArmExtender, 'tool0');
 
     tcp = rigidBody('tcp');
@@ -38,15 +35,16 @@ function [H_base_cam] = get_homogeneous_transform_robot()
     addBody(robot, tcp, 'extender');
 
     cameraMount = rigidBody('cam_mount');
-    setFixedTransform(cameraMount.Joint, [-0.087 0 -0.132 pi/2], 'dh');
+    setFixedTransform(cameraMount.Joint, [0.087 0 -0.132 pi/2], 'dh');
     addBody(robot, cameraMount, 'tcp');
     
-     cam = rigidBody('webcam');
-     setFixedTransform(cam.Joint, [0 0 0 -pi/2], 'dh');
-     addBody(robot, cam, 'cam_mount');
+    cam = rigidBody('webcam');
+    setFixedTransform(cam.Joint, [0 0 0 -pi/2], 'dh');
+    addBody(robot, cam, 'cam_mount');
    
-    %config = randomConfiguration(robot); %Replace by robot config when taking snapshot
-    config = [pi/2, -pi/2, pi/2, (3/2)*pi, -pi/2, -pi]'; 
+    %Replace config by robot config when taking snapshot. Has to be
+    %perpendicular to surface.
+    config = [pi/2, -pi/2, pi/3, (5/3)*pi, -pi/2, -pi]'; 
     %show(robot,config);
     H_base_ee = getTransform(robot, config, 'base', 'tcp');
     H_ee_cam = getTransform(robot, config, 'tcp', 'webcam');
