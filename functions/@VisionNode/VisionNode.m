@@ -14,8 +14,11 @@ classdef VisionNode < dynamicprops
         
         % Message types: Robot tasks
         MsgType = struct(...
+            'moveJoint', ('(1)'), ...
+            'getJointPos', ('(2)'), ...
             'openGrip', ('(3)'), ...
             'closeGrip', ('(4)'), ...
+            'getTcpPos', ('(5)'), ...
             'moveTcp', ('(6)') ...
             );
     end
@@ -35,15 +38,13 @@ classdef VisionNode < dynamicprops
         ObjBasePostions = []; %[X1, Y1, Z1; ...; XnumObjs, YnumObj, ZnumObj]
         
         % Message content
-        %CmdTcpPosition = [0.1333, -0.4394, 0.684, 3.142, 0, 0]; %[X, Y, Z(FIXED), Rx, Ry, Rz] - tcp pose of given init joint values
-        CmdTcpPosition = [0.130, -0.440, 0.530, 3.141, -0.002, -0.012];
+        CmdTcpPosition = [0.130, -0.440, 0.530, 3.141, -0.002, -0.012]; %[X, Y, Z(FIXED), Rx, Ry, Rz]
         CmdJointPosition = [pi/2, -pi/2, pi/3, (5/3)*pi, -pi/2, -pi];
         %Z fixed (For Z to be constant, the axis of the camera must be perpendicular to a flat surface being photographed), orientation unknown
-        %Get orientation from RBT
-        
+
         % Network
         RobotIp = '172.31.1.252';
-        Socket %initialize?
+        Socket
     end
     
     methods
@@ -109,27 +110,91 @@ classdef VisionNode < dynamicprops
         function [currentCmdTcpPosition] = getCmdTcpPosition(node)
             currentCmdTcpPosition = node.CmdTcpPosition;
         end
-        
-        function moveToTcpPosition(node)
-            tcpChar = ['(',num2str(node.CmdTcpPosition(1)),',',... 
+
+        function moveRobot(node, msgType)
+            if msgType == node.MsgType.moveTcp
+                moveMsg = ['(',num2str(node.CmdTcpPosition(1)),',',... 
                 num2str(node.CmdTcpPosition(2)),',',...
                 num2str(node.CmdTcpPosition(3)),',',...
                 num2str(node.CmdTcpPosition(4)),',',...
                 num2str(node.CmdTcpPosition(5)),',',...
                 num2str(node.CmdTcpPosition(6)),...
                 ')'];
-            
-            fprintf(node.Socket, node.MsgType.moveTcp);
-            pause(0.01);% Tune this to meet your system
-            fprintf(node.Socket, tcpChar);
-            while node.Socket.BytesAvailable==0 % wait for response
-                %node.Socket.BytesAvailable
+            elseif msgType == node.MsgType.moveJoint
+                moveMsg = ['(',num2str(node.CmdJointPosition(1)),',',...
+                num2str(node.CmdJointPosition(2)),',',...
+                num2str(node.CmdJointPosition(3)),',',...
+                num2str(node.CmdJointPosition(4)),',',...
+                num2str(node.CmdJointPosition(5)),',',...
+                num2str(node.CmdJointPosition(6)),...
+                ')'];
+            else
+                disp("Invalid move request sent to robot.")
             end
+            
+            fprintf(node.Socket, msgType);
+            pause(0.01);
+            fprintf(node.Socket, moveMsg);
+            while node.Socket.BytesAvailable==0
+            end
+            
             success = fscanf(node.Socket,'%c',node.Socket.BytesAvailable);
             if ~success
-                ERROR("Failed to send TCP command.")
+                ERROR("Failed to send command.")
             else
-                disp("TCP command sent.")
+                if msgType == node.MsgType.moveTcp
+                    disp("Tcp command sent.")
+                elseif msgType == node.MsgType.moveJoint
+                    disp("Joint command sent.")
+                end
+            end
+        end
+        
+        function [msg] = retrieveRobotInfo(node, msgType)
+%             if (msgType ~= node.MsgType.getTcpPos) && (msgType ~= node.MsgType.getJointPos)
+%                 disp("Invalid read request.")
+%                 return
+%             end
+            
+            fprintf(node.Socket, msgType);
+            pause(0.01);
+            while node.Socket.BytesAvailable==0
+            end
+
+            robotMsg = fscanf(node.Socket,'%c', node.Socket.BytesAvailable);
+            if ~strcmp(robotMsg(1),'[') || ~strcmp(robotMsg(end),']')
+                error('Robot read error.')
+            end
+            
+            robotMsg(end) = ',';
+            c = 1;
+            msg = zeros(1,6);
+            for i = 1 : 6
+                C = [];
+                isDone = 0;
+                while(~isDone)
+                    
+                    c = c + 1;
+                    if strcmp(robotMsg(c) , ',')
+                        isDone = 1;
+                    else
+                        C = [C,robotMsg(c)];
+                    end
+                end
+                msg(i) = str2double(C);   
+            end
+            for i = 1 : length(msg)
+                if isnan(msg(i))
+                    error('Robot read error (Nan)')
+                end
+            end
+  
+            if msgType == node.MsgType.getTcpPos
+                disp("Current tcp pose of robot received.")
+                node.CmdTcpPosition = msg;
+            elseif msgType == node.MsgType.getJointPos
+                disp("Current joint position of robot received.")
+                node.CmdJointPosition = msg;
             end
         end
 
@@ -141,8 +206,8 @@ classdef VisionNode < dynamicprops
             end
             fprintf(node.Socket, node.MsgType.openGrip);
             while node.Socket.BytesAvailable==0
-                %node.Socket.BytesAvailable
             end
+            
             success = fscanf(node.Socket,'%c',node.Socket.BytesAvailable);
             if ~strcmp(success,'1')
                 error('error sending open gripper command')
@@ -157,8 +222,8 @@ classdef VisionNode < dynamicprops
             end
             fprintf(node.Socket, node.MsgType.closeGrip);
             while node.Socket.BytesAvailable==0
-                %node.Socket.BytesAvailable
             end
+            
             success = fscanf(node.Socket,'%c',node.Socket.BytesAvailable);
             if ~strcmp(success,'1')
                 error('error sending close gripper command')
@@ -166,12 +231,6 @@ classdef VisionNode < dynamicprops
         end
 
     end
-    
-    %methods (Static)
-        %Static methods do not require an object of the class
-        %Call staticMethod using the syntax classname.methodname:
-    %end
-    %https://se.mathworks.com/matlabcentral/answers/356254-function-in-class-not-working-which-normally-works
 end
 
 
