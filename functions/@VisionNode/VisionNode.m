@@ -6,12 +6,17 @@ classdef VisionNode < dynamicprops
             'squareSize', 35 ... 
             );
         
+        % Object specifications 
+        Object = struct(...
+            'height', 0.016 ...
+            );
+        
         % Memory location
         Folder = struct(...
             'calibration', ('..\data\calibrationImgs'), ...
             'recognition', ('..\data\recognitionImgs')...
             );
-        
+            
         % Message types: Robot tasks
         MsgType = struct(...
             'moveJoint', ('(1)'), ...
@@ -21,41 +26,47 @@ classdef VisionNode < dynamicprops
             'getTcpPos', ('(5)'), ...
             'moveTcp', ('(6)') ...
             );
+        
+        % Set standardised movement in Z direction
+        % Tune to meet your system
+        MoveZ = struct(...
+            'up', 0.53, ...
+            'down', 0.15, ... 
+            'pick_obj', 0.02 ...
+            );
     end
     
     properties
         % Image capture
         numImgCapture = struct(...
-        'calibration', 30,... %An accurate calibration requires at least 10-20 images
+        'calibration', 30,... % An accurate calibration requires at least 10-20 images
         'recognition', 1 ...
         );
         
-        % Object measurements
-        ObjectPositions = []; %[X1,Y1; X2, Y2; ...; XnumObjs,YnumObjs]
-        ObjectWidths = [];
-        
-        %Object position relative to robot base
-        ObjBasePostions = []; %[X1, Y1, Z1; ...; XnumObjs, YnumObj, ZnumObj]
-        
-        % Message content
-        CmdTcpPosition = [0.130, -0.440, 0.530, 3.141, -0.002, -0.012]; %[X, Y, Z(FIXED), Rx, Ry, Rz]
+        % Set tcp and joint positions
+        CmdTcpPosition = [0.130, -0.440, 0.530, 3.141, -0.002, -0.012];       % [X, Y, Z(FIXED), Rx, Ry, Rz]
         CmdJointPosition = [pi/2, -pi/2, pi/3, (5/3)*pi, -pi/2, -pi];
-        %Z fixed (For Z to be constant, the axis of the camera must be perpendicular to a flat surface being photographed), orientation unknown
-
+        % Tcp and joint position for image capture
+        ImgCaptureTcpPosition = [0.130, -0.440, 0.530, 3.141, -0.002, -0.012]; % Tune when joints at ImgCapureJointPosition
+        ImgCaptureJointPosition = [pi/2, -pi/2, pi/3, (5/3)*pi, -pi/2, -pi];  % Camera must be perpendicular to the surface being photographed
+        
         % Network
-        RobotIp = '172.31.1.252';
+        RobotIp = '172.31.1.101'; 
         Socket
+        
+        % Object position relative to robot base
+        objPositions = []; %[X1, Y1, Z1; ...; XnumObjs, YnumObj, ZnumObj]
+        
+        % State of the gripper
+        GripperState = struct(...
+            'closed', true, ...
+            'open', false ...
+            );  
     end
     
     methods
         %constructor of class VisionNode
-        function node = VisionNode(currentTcpPosition)
-            % Initialize with current tcp position of robot
-            if length(currentTcpPosition) == 6 % needs more/better check
-                node.CmdTcpPosition = currentTcpPosition;
-            else
-                ERROR("TCP position expected as array of 6 with the format [X, Y, Z, Rx, Ry, Rz]")
-            end
+        function node = VisionNode()
         end
         
         set_webcam_images(node, numImgs, folder)
@@ -68,15 +79,9 @@ classdef VisionNode < dynamicprops
         
         [R, t] = get_extrinsics(node, cameraParams, imgUndistorted, origin, worldPoints)
      
-        [objBasePositions] = get_obj_position(node, cameraParams, R, t, origin, centroids, boundingBoxes)
+        [objPositions] = get_obj_position(node, cameraParams, R, t, origin, centroids, boundingBoxes)
         
         %% Network specific methods
-        % must be able to perform these tasks:
-        % 1. Init Socket and establish connection
-        % 2. Receive messages from robot
-        % 3. Send messages to robot - TODO: generalize sending by introducing message types
-        % 4. Close Socket
-        
         function initSocket(node)
             % Connect to robot
             Socket_conn = tcpip(node.RobotIp, 30000,'NetworkRole','server');
@@ -91,24 +96,51 @@ classdef VisionNode < dynamicprops
             clear node.Socket
         end
         
-        function setCmdTcpPosition(node, currentCmdPosition) 
-            if size(currentCmdPosition, 2) == 6 % needs more/better check
-                node.CmdTcpPosition = currentCmdPosition;
+        function setCmdTcpPosition(node, currentTcpPosition) 
+            if size(currentTcpPosition, 2) == 6 % needs more/better check
+                node.CmdTcpPosition = currentTcpPosition;
             else
                 ERROR("TCP position expected as array of 6 with the format [X, Y, Z, Rx, Ry, Rz]")
             end
         end
         
-        function setCmdTcpObjPosition(node, objBasePosition) 
-            if size(objBasePosition, 1) == 1 % needs more/better check
-                node.CmdTcpPosition(1:2) = objBasePosition(1:2);
+        function setCmdTcpXYPosition(node, objPositions, objNum) 
+            if size(objPositions, 2) == 3 % needs more/better check
+                xOffset = 0.005; yOffset = 0.09; % Due to inaccurate measurements for the dh parameters
+                node.CmdTcpPosition(1) = node.ImgCaptureTcpPosition(1) - objPositions(objNum, 1) + xOffset;
+                node.CmdTcpPosition(2) = node.ImgCaptureTcpPosition(2) - objPositions(objNum, 2) - yOffset;
             else
-                ERROR("TCP position expected as array of 6 with the format [X, Y, Z, Rx, Ry, Rz]")
+                ERROR("TCP XY position expected as array of 3 with columns [X, Y, Z] and as many rows as detected objects. Please spescify the object you want the tcp to position on top of from left to right (?).")
+            end
+        end
+        
+        function setCmdTcpZPosition(node, moveZ)
+            if moveZ == node.MoveZ.pick_obj
+                if node.GripperState.open == true
+                    node.CmdTcpPosition(3) = moveZ + (node.Object.height/2);
+                else
+                    disp('Gripper has to be opened in order to move to the object picking position.')
+                    return
+                end
+            else
+                node.CmdTcpPosition(3) = moveZ;
             end
         end
         
         function [currentCmdTcpPosition] = getCmdTcpPosition(node)
             currentCmdTcpPosition = node.CmdTcpPosition;
+        end
+        
+        function setCmdJointPosition(node, currentJointPosition) 
+            if size(currentJointPosition, 2) == 6 % needs more/better check
+                node.CmdJointPosition = currentJointPosition;
+            else
+                ERROR("Joint position expected as array of 6 with the format [Base, Shoulder, Elbow, Wrist 1, Wrist 2, Wrist 3] in radians.")
+            end
+        end
+        
+        function [currentCmdJointPosition] = getCmdJointPosition(node)
+            currentCmdJointPosition = node.CmdJointPosition;
         end
 
         function moveRobot(node, msgType)
@@ -129,7 +161,8 @@ classdef VisionNode < dynamicprops
                 num2str(node.CmdJointPosition(6)),...
                 ')'];
             else
-                disp("Invalid move request sent to robot.")
+                disp('Invalid move request.')
+                return
             end
             
             fprintf(node.Socket, msgType);
@@ -140,21 +173,25 @@ classdef VisionNode < dynamicprops
             
             success = fscanf(node.Socket,'%c',node.Socket.BytesAvailable);
             if ~success
-                ERROR("Failed to send command.")
+                ERROR("Failed to send move command.")
             else
                 if msgType == node.MsgType.moveTcp
-                    disp("Tcp command sent.")
+                    disp('Tcp move command sent.')
                 elseif msgType == node.MsgType.moveJoint
-                    disp("Joint command sent.")
+                    disp('Joint move command sent.')
                 end
             end
         end
         
         function [msg] = retrieveRobotInfo(node, msgType)
-%             if (msgType ~= node.MsgType.getTcpPos) && (msgType ~= node.MsgType.getJointPos)
-%                 disp("Invalid read request.")
-%                 return
-%             end
+            if msgType == node.MsgType.getTcpPos
+                disp('Tcp read request sent.')
+            elseif msgType == node.MsgType.getJointPos
+                disp('Joint read request sent.')
+            else
+                disp('Invalid read request.')
+                return
+            end
             
             fprintf(node.Socket, msgType);
             pause(0.01);
@@ -163,7 +200,7 @@ classdef VisionNode < dynamicprops
 
             robotMsg = fscanf(node.Socket,'%c', node.Socket.BytesAvailable);
             if ~strcmp(robotMsg(1),'[') || ~strcmp(robotMsg(end),']')
-                error('Robot read error.')
+                ERROR("Robot read error.")
             end
             
             robotMsg(end) = ',';
@@ -185,16 +222,16 @@ classdef VisionNode < dynamicprops
             end
             for i = 1 : length(msg)
                 if isnan(msg(i))
-                    error('Robot read error (Nan)')
+                    ERROR("Robot read error (Nan)")
                 end
             end
   
             if msgType == node.MsgType.getTcpPos
-                disp("Current tcp pose of robot received.")
-                node.CmdTcpPosition = msg;
+                disp('Current tcp pose of robot received.')
+                %node.CmdTcpPosition = msg;
             elseif msgType == node.MsgType.getJointPos
-                disp("Current joint position of robot received.")
-                node.CmdJointPosition = msg;
+                disp('Current joint position of robot received.')
+                %node.CmdJointPosition = msg;
             end
         end
 
@@ -210,7 +247,10 @@ classdef VisionNode < dynamicprops
             
             success = fscanf(node.Socket,'%c',node.Socket.BytesAvailable);
             if ~strcmp(success,'1')
-                error('error sending open gripper command')
+                ERROR("Error sending open gripper command.")
+            else
+                node.GripperState.closed = false;
+                node.GripperState.open = true;  
             end
         end
         
@@ -226,7 +266,10 @@ classdef VisionNode < dynamicprops
             
             success = fscanf(node.Socket,'%c',node.Socket.BytesAvailable);
             if ~strcmp(success,'1')
-                error('error sending close gripper command')
+                ERROR("Error sending close gripper command.")
+            else
+                node.GripperState.open = false;
+                node.GripperState.closed = true; 
             end
         end
 

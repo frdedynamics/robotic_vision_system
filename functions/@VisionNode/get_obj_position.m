@@ -1,12 +1,12 @@
-function [objBasePositions] = get_obj_position(node, cameraParams, R, t, origin, centroids, boundingBoxes)
+function [XYZ_base_obj] = get_obj_position(node, cameraParams, R, t, origin, centroids, boundingBoxes)
     [objPositions, ~] = get_obj_measurements(cameraParams, R, t, origin, centroids, boundingBoxes);
     H_base_obj = get_mapping_robot_object(R, t);
     
-    objBasePositions = zeros(size(objPositions, 1), 3);
+    XYZ_base_obj = zeros(size(objPositions, 1), 3);
     for i=1:size(objPositions,1)
         XY01_obj = [objPositions(i,:).'; 0; 1] * 0.001; %[mm]->[m]
         XY01_base = H_base_obj * XY01_obj;
-        objBasePositions(i, :)  = XY01_base(1:3);
+        XYZ_base_obj(i, :)  = XY01_base(1:3);
     end
 end
 
