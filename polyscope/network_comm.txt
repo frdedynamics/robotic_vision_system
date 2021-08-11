@@ -1,0 +1,88 @@
+ Program
+   BeforeStart
+     Popup: Ok to open gripper?
+     Gripper Activate
+     socket_close("robot_socket")
+     Wait: 2.0
+     socket_open("172.31.1.96", 30000, "robot_socket")
+     task≔[0,0]
+     receive_data≔[6, 0, 0, 0, 0, 0, 0]
+     transmit_data≔[0, 0, 0, 0, 0, 0]
+     move_to_joints≔[d2r(90), d2r(-90), d2r(60), d2r(300), d2r(-90), d2r(-180)]
+     Call Init_joint
+     move_to_tcp≔get_target_tcp_pose()
+     is_tcp_rec≔ False 
+     is_joint_rec≔ False 
+     is_tcp_send≔ False 
+     is_joint_send≔ False 
+   Robot Program
+     Wait: 2.0
+     task≔socket_read_ascii_float(1, "robot_socket")
+     Switch task[1]
+       Case 1
+         is_joint_rec≔ True 
+         Call Receive_msg
+       Case 2
+         is_joint_send≔ True 
+         Call Transmit_msg
+       Case 3
+         Call OpenGripper
+       Case 4
+         Call CloseGripper
+       Case 5
+         is_tcp_send≔ True 
+         Call Transmit_msg
+       Case 6
+         is_tcp_rec≔ True 
+         Call Receive_msg
+   Init_joint
+     If get_actual_joint_positions()≠move_to_joints
+       movej(move_to_joints, a=0.1, v=0.15, t=0, r=0)
+       Wait: 2.0
+   Receive_msg
+     receive_data≔socket_read_ascii_float(6, "robot_socket")
+     If receive_data[0]≠6
+       socket_send_string("0", "robot_socket")
+     Else
+       socket_send_string("1", "robot_socket")
+       i≔0
+       If is_tcp_rec
+         Loop i<receive_data[0]
+           move_to_tcp[i] = receive_data[i+1]
+           i≔i+1
+       ElseIf is_joint_rec
+         Loop i<receive_data[0]
+           move_to_joints[i] = receive_data[i+1]
+           i≔i+1
+     task≔[0,0]
+   Transmit_msg
+     If is_tcp_send
+       curr_tcp_pose≔get_actual_tcp_pose()
+       i≔0
+       Loop i<length(transmit_data)
+         transmit_data[i] = curr_tcp_pose[i]
+         i≔i+1
+       is_tcp_send≔ False 
+     ElseIf is_joint_send
+       transmit_data≔get_actual_joint_positions()
+       is_joint_send≔ False 
+     socket_send_string(transmit_data,  "robot_socket")
+     task≔[0,0]
+   OpenGripper
+     Gripper Open (1)
+     Wait: 0.01
+     socket_send_string("1", "robot_socket")
+     task≔[0,0]
+   CloseGripper
+     Gripper Close (1)
+     Wait: 0.01
+     socket_send_string("1", "robot_socket")
+     task≔[0,0]
+   Thread_1
+     If is_tcp_rec
+       movel(move_to_tcp, a=0.1, v=0.15, r=0)
+       is_tcp_rec≔ False 
+     ElseIf is_joint_rec
+       movej(move_to_joints, a=0.1, v=0.15, t=0, r=0)
+       is_joint_rec≔ False 
+     Wait: 1.0
