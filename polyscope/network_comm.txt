@@ -2,6 +2,7 @@
    BeforeStart
      Popup: Ok to open gripper?
      Gripper Activate
+     Gripper Close (1)
      socket_close("robot_socket")
      Wait: 2.0
      socket_open("172.31.1.96", 30000, "robot_socket")
@@ -9,7 +10,7 @@
      receive_data≔[6, 0, 0, 0, 0, 0, 0]
      transmit_data≔[0, 0, 0, 0, 0, 0]
      move_to_joints≔[d2r(90), d2r(-90), d2r(60), d2r(300), d2r(-90), d2r(-180)]
-     Call Init_joint
+     'Call Init_joint'
      move_to_tcp≔get_target_tcp_pose()
      is_tcp_rec≔ False 
      is_joint_rec≔ False 
@@ -35,10 +36,7 @@
        Case 6
          is_tcp_rec≔ True 
          Call Receive_msg
-   Init_joint
-     If get_actual_joint_positions()≠move_to_joints
-       movej(move_to_joints, a=0.1, v=0.15, t=0, r=0)
-       Wait: 2.0
+   'Init_joint'
    Receive_msg
      receive_data≔socket_read_ascii_float(6, "robot_socket")
      If receive_data[0]≠6
