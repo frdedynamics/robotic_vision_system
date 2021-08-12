@@ -1,4 +1,4 @@
-function [cameraParams, worldPoints] = get_camera_parameters(node, folder, checkerboardSize, squareSize)
+function [cameraParams, worldPoints] = get_intrinsics(node, folder, checkerboardSize, squareSize)
     calib_imgs = load_imgs(folder);
     
     %Detect checkerboard corners in images

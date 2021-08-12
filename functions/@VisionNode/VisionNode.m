@@ -30,8 +30,8 @@ classdef VisionNode < dynamicprops
         % Set standardised movement in Z direction
         % Tune to meet your system
         MoveZ = struct(...
-            'up', 0.53, ...
-            'down', 0.15, ... 
+            'up', 0.52, ...
+            'down', 0.12, ... 
             'pick_obj', 0.02 ...
             );
     end
@@ -44,8 +44,8 @@ classdef VisionNode < dynamicprops
         );
         
         % Set tcp and joint positions
-        CmdTcpPosition = [0.130, -0.440, 0.530, 3.141, -0.002, -0.012];       % [X, Y, Z(FIXED), Rx, Ry, Rz]
-        CmdJointPosition = [pi/2, -pi/2, pi/3, (5/3)*pi, -pi/2, -pi];
+        CmdTcpPosition = zeros(1,6); %[0.130, -0.440, 0.530, 3.141, -0.002, -0.012];       % [X, Y, Z(FIXED), Rx, Ry, Rz]
+        CmdJointPosition = zeros(1,6); %[pi/2, -pi/2, pi/3, (5/3)*pi, -pi/2, -pi];
         % Tcp and joint position for image capture
         ImgCaptureTcpPosition = [0.130, -0.440, 0.530, 3.141, -0.002, -0.012]; % Tune when joints at ImgCapureJointPosition
         ImgCaptureJointPosition = [pi/2, -pi/2, pi/3, (5/3)*pi, -pi/2, -pi];  % Camera must be perpendicular to the surface being photographed
@@ -71,15 +71,15 @@ classdef VisionNode < dynamicprops
         
         set_webcam_images(node, numImgs, folder)
         
-        [cameraParams, worldPoints] = get_camera_parameters(node, folderCalibData, checkerboardSize, squareSize)
+        [cameraParams, worldPoints] = get_intrinsics(node, folderCalibData, checkerboardSize, squareSize)
         
-        [imgSegmented, imgUndistorted, origin] = filter_recognition_image(node, folderRecogData, recogImgNum, cameraParams)
+        [imgSegmented, imgUndistorted, newOrigin] = filter_recognition_image(node, folderRecogData, recogImgNum, cameraParams)
         
         [centroids, boundingBoxes] = detect_objects(node, imgSegmented, imgUndistorted)
         
-        [R, t] = get_extrinsics(node, cameraParams, imgUndistorted, origin, worldPoints)
+        [R, t] = get_extrinsics(node, cameraParams, imgUndistorted, newOrigin, worldPoints)
      
-        [objPositions] = get_obj_position(node, cameraParams, R, t, origin, centroids, boundingBoxes)
+        [objPositions] = get_obj_position(node, cameraParams, R, t, newOrigin, centroids, boundingBoxes)
         
         %% Network specific methods
         function initSocket(node)
