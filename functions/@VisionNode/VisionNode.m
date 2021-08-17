@@ -30,7 +30,7 @@ classdef VisionNode < dynamicprops
         % Set standardised movement in Z direction
         % Tune to meet your system
         MoveZ = struct(...
-            'up', 0.52, ...
+            'up', 0.45, ...
             'down', 0.12, ... 
             'pick_obj', 0.02 ...
             );
@@ -44,8 +44,8 @@ classdef VisionNode < dynamicprops
         );
         
         % Set tcp and joint positions
-        CmdTcpPosition = zeros(1,6); %[0.130, -0.440, 0.530, 3.141, -0.002, -0.012];       % [X, Y, Z(FIXED), Rx, Ry, Rz]
-        CmdJointPosition = zeros(1,6); %[pi/2, -pi/2, pi/3, (5/3)*pi, -pi/2, -pi];
+        CmdTcpPosition = zeros(1,6); % [X, Y, Z(FIXED), Rx, Ry, Rz]
+        CmdJointPosition = zeros(1,6);
         % Tcp and joint position for image capture
         ImgCaptureTcpPosition = [0.130, -0.440, 0.530, 3.141, -0.002, -0.012]; % Tune when joints at ImgCapureJointPosition
         ImgCaptureJointPosition = [pi/2, -pi/2, pi/3, (5/3)*pi, -pi/2, -pi];  % Camera must be perpendicular to the surface being photographed
@@ -142,7 +142,16 @@ classdef VisionNode < dynamicprops
         function [currentCmdJointPosition] = getCmdJointPosition(node)
             currentCmdJointPosition = node.CmdJointPosition;
         end
-
+        
+        function atTargetPosition(node, targetPos, msgType)
+            currentPos = node.retrieveRobotInfo(msgType);
+            disp('Waiting for robot to reach target position.')
+            while norm(currentPos(1:3) - targetPos(1:3)) > 0.01
+                pause(1)
+                currentPos = node.retrieveRobotInfo(msgType);
+            end
+        end     
+        
         function moveRobot(node, msgType)
             if msgType == node.MsgType.moveTcp
                 moveMsg = ['(',num2str(node.CmdTcpPosition(1)),',',... 
@@ -228,10 +237,8 @@ classdef VisionNode < dynamicprops
   
             if msgType == node.MsgType.getTcpPos
                 disp('Current tcp pose of robot received.')
-                %node.CmdTcpPosition = msg;
             elseif msgType == node.MsgType.getJointPos
                 disp('Current joint position of robot received.')
-                %node.CmdJointPosition = msg;
             end
         end
 
